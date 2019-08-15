@@ -203,7 +203,7 @@ def save_tsne(img_paths, x_coords, y_coords, width, height, max_dim=100):
 def main():
 
     print("Globbing paths... ", end='')
-    img_paths = glob.glob(f"{IMG_DIR}*.jpg")[:20]
+    img_paths = glob.glob(f"{IMG_DIR}*.jpg")
     print("Done!")
     
     print("Extracting features... ", end='')
