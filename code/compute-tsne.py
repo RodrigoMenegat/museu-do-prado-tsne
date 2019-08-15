@@ -11,6 +11,7 @@ import csv
 import datetime as dt
 import glob
 import matplotlib.pyplot as plt
+import json
 from matplotlib.pyplot import imshow
 import numpy as np
 import keras
@@ -37,7 +38,7 @@ MODEL = keras.applications.VGG16(weights='imagenet', include_top=True)
 FEAT_EXTRACTOR = Model(inputs=MODEL.input, outputs=MODEL.get_layer("fc2").output)
 
 # Path para o diretório com as imagens do Museu do Prado
-IMG_DIR = "../data/prado/Pintura/"
+IMG_DIR = "../data/imgs/"
 
 # Horário de execução para gerar timestamp
 NOW = str(dt.datetime.now())[:16].replace(":", "-").replace(" ","_")
@@ -160,6 +161,9 @@ def save_tsne(img_paths, x_coords, y_coords, width, height, max_dim=100):
     # Prepara um array com os valores para serem salvos em csv, 
     # já contendo o cabeçalho do futuro arquivo
     csv_data = [ ["img", "x_pos", "y_pos"], ]
+
+    # Cria também um objeto JSON
+    json_data =[ ]
     
     # Compõe e salva uma imagem PNG com o t-SNE calculado
     full_image = Image.new('RGBA', (width, height))
@@ -168,7 +172,11 @@ def save_tsne(img_paths, x_coords, y_coords, width, height, max_dim=100):
         # Salva dados para colocar no CSV depois
         current_row = [img, x_pos, y_pos]
         csv_data.append(current_row)
-        
+
+        # Salva dados para colocar no JSON
+        inner_obj = { "path" : img, "point": [ float(x_pos), float(y_pos) ] }
+        json_data.append(inner_obj)
+
         # Constrói a imagem iteração por iteração
         tile = Image.open(img)
         rs = max(1, tile.width/max_dim, tile.height/max_dim)
@@ -183,6 +191,11 @@ def save_tsne(img_paths, x_coords, y_coords, width, height, max_dim=100):
         csv_writer = csv.writer(out, delimiter=',', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
         csv_writer.writerows(csv_data)
 
+    # Salva o objeto JSON
+    with open (f"../output/tsne-{NOW}.json", "w+") as out:
+        json.dump(json_data, out)
+
+
 ################
 ### EXECUÇÃO ###
 ################
@@ -190,7 +203,7 @@ def save_tsne(img_paths, x_coords, y_coords, width, height, max_dim=100):
 def main():
 
     print("Globbing paths... ", end='')
-    img_paths = glob.glob(f"{IMG_DIR}*.jpg")
+    img_paths = glob.glob(f"{IMG_DIR}*.jpg")[:20]
     print("Done!")
     
     print("Extracting features... ", end='')
