@@ -19,6 +19,7 @@ from keras.preprocessing import image
 from keras.applications.imagenet_utils import decode_predictions, preprocess_input
 from keras.models import Model
 from PIL import Image
+import re
 import os
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -169,12 +170,15 @@ def save_tsne(img_paths, x_coords, y_coords, width, height, max_dim=100):
     full_image = Image.new('RGBA', (width, height))
     for img, x_pos, y_pos in zip_obj:
         
+        # Extrai o número identificador da imagem
+        img_id = re.search(f"{IMG_DIR}(.*)\.jpg", img).group(1)
+
         # Salva dados para colocar no CSV depois
-        current_row = [img, x_pos, y_pos]
+        current_row = [img_id, x_pos, y_pos]
         csv_data.append(current_row)
 
         # Salva dados para colocar no JSON
-        inner_obj = { "path" : img, "point": [ float(x_pos), float(y_pos) ] }
+        inner_obj = { "id" : img_id, "point": [ float(x_pos), float(y_pos) ] }
         json_data.append(inner_obj)
 
         # Constrói a imagem iteração por iteração
