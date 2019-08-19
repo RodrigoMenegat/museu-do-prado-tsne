@@ -1,8 +1,8 @@
 
 /* Função que desenha o primeiro canvas, com todas as imagens */
-function drawCanvas(opacity) {
+function drawCanvas(opacity, x0, x1, y0, y1) {
 
-  function drawAll(datapoints, opacity) {
+  function drawAll(datapoints, opacity, sizeMultiplier) {
     /*
     Desenha todos os datapoints no canvas
     com uma opacidade de menor destaque.
@@ -11,46 +11,56 @@ function drawCanvas(opacity) {
     // Seleciona a div
     var container = d3.select(".container");
 
+    // Cria e seleciona um canvas
     var canvas = container.append("canvas")
       .attr('width', dimensions.width)
       .attr('height', dimensions.height)
       .attr('id', 'base-canvas')
       .attr('class', 'canvas-plot');
 
+    // Cria um contexto para executar o desenho
     var ctx = canvas.node().getContext('2d');
     // Define a transparência do canvas
     ctx.globalAlpha = opacity;
 
+    // Calcula o tamanho da imagem para manter a
+    // proporcionalidade em relação ao tamanho
+    // máximo da tabela
+    var size = 10 * sizeMultiplier;
+    console.log("size:", size)
+
+    // Para cada datapoins, carrega e adiciona uma imagem
     datapoints.forEach(function(d){
 
       var img = new Image();
 
       img.addEventListener('load', function() {
 
-        ctx.drawImage(img, xPositionScale(d.x_pos), yPositionScale(d.y_pos), 10, 10);
+        ctx.drawImage(img, xPositionScale(d.x_pos), yPositionScale(d.y_pos), size, size);
       }, false);
 
       img.src = imgDir + d.img + ".jpg";
-      img.alt = 'insira alt aqui';
 
     })
 
   }
 
+  /* As dimensões sempre serão 2000 x 2000,
+  independentemente de estarmos desenhando
+  a nuvem toda ou apenas o zoom em uma área. */
   const dimensions = {
     "width"  : 2000,
     "height" : 2000
   };
 
-  const imgDir = "../data/imgs-small/"
+  const imgDir = "../data/imgs/"
 
-  const xPositionScale = d3.scaleLinear()
-    .domain([0, 1])
-    .range([0, dimensions.width - 10]);
-
-  const yPositionScale = d3.scaleLinear()
-    .domain([0, 1])
-    .range([dimensions.height - 10, 0]);
+  /* Os domínios das escals são definidos
+  posteriormente, com base nos valores mínimos 
+  e máximos dos datapoints, já filtrados pelo 
+  bounding box passado (x0, x1, y0, y1) */
+  const xPositionScale = d3.scaleLinear();
+  const yPositionScale = d3.scaleLinear();
 
   d3.queue()
     .defer(d3.csv, "../output/tsne-2019-08-16_13-45.csv")
@@ -58,33 +68,61 @@ function drawCanvas(opacity) {
 
   function ready(error, datapoints) {
 
-    drawAll(datapoints, opacity);
+    /* Calcula a proporção da bounding 
+    box em relação ao valor total */
+    var bbox_proportion = (x1 - x0) / 1;
+    var sizeMultiplier  = 1 / bbox_proportion;
+    console.log("bbox_proportion:", bbox_proportion);
+    console.log("sizeMultiplier:", sizeMultiplier);
+
+
+    /* Filtra os datapoins para manter apenas os
+    que se encontram dentro da área que queremos destacar */
+    datapoints = datapoints.filter(function(d){
+      return (d.x_pos >= x0) && (d.x_pos <= x1) &&
+             (d.y_pos >= y0) && (d.y_pos <= y1);
+    });
+
+
+    /* Define o domínio com base nos valores mínimo
+    e máximo do banco de dados */
+    var xDomain = d3.extent(datapoints.map(function(d){ return d.x_pos; }))
+    xPositionScale.domain(xDomain)
+                  .range([0, dimensions.width - 10 * sizeMultiplier]);
+
+
+    var yDomain = d3.extent(datapoints.map(function(d){ return d.y_pos; }))
+    yPositionScale.domain(yDomain)
+                  .range([dimensions.height - 10 * sizeMultiplier, 0]);
+
+    drawAll(datapoints, opacity, sizeMultiplier);
 
   }
 
 };
 
 /* Funções para executar no console e alterar a imagem */
-function addHighlights(highlight_ids, opacity) {
+function addHighlights(highlightIds, x0, x1, y0, y1, opacity) {
   /*
-  Recebe um array de ids de imagens e desenha
-  elas sobre o canvas original com opacidade de 1.
+  Recebe um array de ids que devem ser destacados e desenha
+  eles com opacidade maior sobre o canvas original.
+  Desenha elas sobre o canvas original 
   */
 
-  const imgDir = "../data/imgs-small/"
+  // Padrão de opacidade é 1
+  if (opacity === null) {
+    opacity = 1;
+  }
+
+  const imgDir = "../data/imgs/"
 
   const dimensions = {
     "width"  : 2000,
     "height" : 2000
   };
 
-  const xPositionScale = d3.scaleLinear()
-    .domain([0, 1])
-    .range([0, dimensions.width - 10]);
-
-  const yPositionScale = d3.scaleLinear()
-    .domain([0, 1])
-    .range([dimensions.height - 10, 0]);
+  const xPositionScale = d3.scaleLinear();
+  const yPositionScale = d3.scaleLinear();
 
   var canvas = d3.select(".canvas-plot");
   var ctx = canvas.node().getContext('2d');
@@ -106,22 +144,49 @@ function addHighlights(highlight_ids, opacity) {
 
   function ready(error, datapoints) {
 
+    /* Calcula a proporção da bounding 
+    box em relação ao valor total da nuvem */
+    var bbox_proportion = (x1 - x0) / 1;
+    var sizeMultiplier  = 1 / bbox_proportion;
+    console.log("bbox_proportion:", bbox_proportion);
+    console.log("sizeMultiplier:", sizeMultiplier);
+
+    /* Calcula a proporção pela qual cada imagem deve
+    ser multiplicada */
+    var size = 10 * sizeMultiplier;
+
+
+    /* Filtra os datapoins para manter apenas os
+    que se encontram dentro da área que queremos destacar
+    E se a imagem se encontrar em um dos highlightIds */
     datapoints = datapoints.filter(function(d){
-      console.log(d.img);
-      return highlight_ids.includes(d.img)
-    })
+      return (d.x_pos >= x0) && (d.x_pos <= x1) &&
+             (d.y_pos >= y0) && (d.y_pos <= y1) &&
+             (highlightIds.includes(d.img));
+    });
     console.log(datapoints);
+
+
+    /* Define o domínio com base nos valores mínimo
+    e máximo do banco de dados */
+    var xDomain = [x0, x1];
+    xPositionScale.domain(xDomain)
+                  .range([0, dimensions.width - 10 * sizeMultiplier]);
+
+
+    var yDomain = [y0, y1];
+    yPositionScale.domain(yDomain)
+                  .range([dimensions.height - 10 * sizeMultiplier, 0]);
 
     datapoints.forEach(function(d){
 
       var img = new Image();
 
       img.addEventListener('load', function() {
-        ctx.drawImage(img, xPositionScale(d.x_pos), yPositionScale(d.y_pos), 10, 10);
+        ctx.drawImage(img, xPositionScale(d.x_pos), yPositionScale(d.y_pos), size, size);
       }, false);
 
       img.src = imgDir + d.img + ".jpg";
-      img.alt = 'insira alt aqui';
 
     })
 
@@ -138,6 +203,6 @@ function cleanCanvas() {
 /// EXECUÇÃO INICIAL ///
 ////////////////////////
 
-/* Faz o desenho inicial, com a 
-opacidade definida no parâmetro único */
-drawCanvas(.1);
+// Faz o desenho inicial, com a 
+// opacidade definida no parâmetro único 
+// drawCanvas(.1);
