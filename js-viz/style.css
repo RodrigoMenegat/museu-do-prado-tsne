@@ -1,0 +1,30 @@
+html {
+  background: #fdf9ef;
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  height: 100%;
+  width: 100%;
+}
+
+.container {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.painting {
+  position: absolute;
+}
+
+.painting img {
+  transform: translate(-50%, -50%);
+  width: 24px;
+}
+
+.canvas-plot {
+  background-color: #fdf9ef;
+  position: absolute;
+}
