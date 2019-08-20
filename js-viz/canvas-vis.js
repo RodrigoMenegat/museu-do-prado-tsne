@@ -1,6 +1,6 @@
 
 /* Função que desenha o primeiro canvas, com todas as imagens */
-function drawCanvas(opacity, x0, x1, y0, y1) {
+function drawCanvas(opacity, x0, x1, y0, y1, hiRes) {
 
   function drawAll(datapoints, opacity, sizeMultiplier) {
     /*
@@ -26,8 +26,7 @@ function drawCanvas(opacity, x0, x1, y0, y1) {
     // Calcula o tamanho da imagem para manter a
     // proporcionalidade em relação ao tamanho
     // máximo da tabela
-    var size = 10 * sizeMultiplier;
-    console.log("size:", size)
+    var imgWidth  = baseImgSize * sizeMultiplier;
 
     // Para cada datapoins, carrega e adiciona uma imagem
     datapoints.forEach(function(d){
@@ -36,13 +35,22 @@ function drawCanvas(opacity, x0, x1, y0, y1) {
 
       img.addEventListener('load', function() {
 
-        ctx.drawImage(img, xPositionScale(d.x_pos), yPositionScale(d.y_pos), size, size);
+        ctx.drawImage(img, xPositionScale(d.x_pos), yPositionScale(d.y_pos), imgWidth, img.height * (imgWidth / img.width));
       }, false);
 
       img.src = imgDir + d.img + ".jpg";
 
     })
 
+  }
+
+  if (!hiRes) {
+    console.log("not hiRes");
+    var imgDir = "../data/imgs-small/"
+  }
+  else {
+    console.log("hiRes");
+    var imgDir = "../data/imgs/"
   }
 
   /* As dimensões sempre serão 2000 x 2000,
@@ -53,7 +61,7 @@ function drawCanvas(opacity, x0, x1, y0, y1) {
     "height" : 2000
   };
 
-  const imgDir = "../data/imgs/"
+  const baseImgSize = dimensions.width / 200;
 
   /* Os domínios das escals são definidos
   posteriormente, com base nos valores mínimos 
@@ -67,6 +75,8 @@ function drawCanvas(opacity, x0, x1, y0, y1) {
     .await(ready);
 
   function ready(error, datapoints) {
+
+    console.log("baseImgSize:", baseImgSize);
 
     /* Calcula a proporção da bounding 
     box em relação ao valor total */
@@ -88,12 +98,12 @@ function drawCanvas(opacity, x0, x1, y0, y1) {
     e máximo do banco de dados */
     var xDomain = d3.extent(datapoints.map(function(d){ return d.x_pos; }))
     xPositionScale.domain(xDomain)
-                  .range([0, dimensions.width - 10 * sizeMultiplier]);
+                  .range([0, dimensions.width - baseImgSize * sizeMultiplier]);
 
 
     var yDomain = d3.extent(datapoints.map(function(d){ return d.y_pos; }))
     yPositionScale.domain(yDomain)
-                  .range([dimensions.height - 10 * sizeMultiplier, 0]);
+                  .range([dimensions.height - baseImgSize * sizeMultiplier, 0]);
 
     drawAll(datapoints, opacity, sizeMultiplier);
 
@@ -102,7 +112,7 @@ function drawCanvas(opacity, x0, x1, y0, y1) {
 };
 
 /* Funções para executar no console e alterar a imagem */
-function addHighlights(highlightIds, x0, x1, y0, y1, opacity) {
+function addHighlights(highlightIds, x0, x1, y0, y1, opacity, hiRes) {
   /*
   Recebe um array de ids que devem ser destacados e desenha
   eles com opacidade maior sobre o canvas original.
@@ -110,16 +120,25 @@ function addHighlights(highlightIds, x0, x1, y0, y1, opacity) {
   */
 
   // Padrão de opacidade é 1
-  if (opacity === null) {
+  if (!opacity) {
     opacity = 1;
   }
 
-  const imgDir = "../data/imgs/"
+  if (!hiRes) {
+    console.log("not hiRes");
+    var imgDir = "../data/imgs-small/"
+  }
+  else {
+    console.log("hiRes");
+    var imgDir = "../data/imgs/"
+  }
 
   const dimensions = {
     "width"  : 2000,
     "height" : 2000
   };
+
+  const baseImgSize = dimensions.width / 200;
 
   const xPositionScale = d3.scaleLinear();
   const yPositionScale = d3.scaleLinear();
@@ -144,6 +163,8 @@ function addHighlights(highlightIds, x0, x1, y0, y1, opacity) {
 
   function ready(error, datapoints) {
 
+    console.log("baseImgSize:", baseImgSize);
+
     /* Calcula a proporção da bounding 
     box em relação ao valor total da nuvem */
     var bbox_proportion = (x1 - x0) / 1;
@@ -151,10 +172,10 @@ function addHighlights(highlightIds, x0, x1, y0, y1, opacity) {
     console.log("bbox_proportion:", bbox_proportion);
     console.log("sizeMultiplier:", sizeMultiplier);
 
-    /* Calcula a proporção pela qual cada imagem deve
-    ser multiplicada */
-    var size = 10 * sizeMultiplier;
-
+    // Calcula o tamanho da imagem para manter a
+    // proporcionalidade em relação ao tamanho
+    // máximo da tabela
+    var imgWidth  = baseImgSize * sizeMultiplier;
 
     /* Filtra os datapoins para manter apenas os
     que se encontram dentro da área que queremos destacar
@@ -171,22 +192,23 @@ function addHighlights(highlightIds, x0, x1, y0, y1, opacity) {
     e máximo do banco de dados */
     var xDomain = [x0, x1];
     xPositionScale.domain(xDomain)
-                  .range([0, dimensions.width - 10 * sizeMultiplier]);
+                  .range([0, dimensions.width - baseImgSize * sizeMultiplier]);
 
 
     var yDomain = [y0, y1];
     yPositionScale.domain(yDomain)
-                  .range([dimensions.height - 10 * sizeMultiplier, 0]);
+                  .range([dimensions.height - baseImgSize * sizeMultiplier, 0]);
 
     datapoints.forEach(function(d){
 
       var img = new Image();
 
       img.addEventListener('load', function() {
-        ctx.drawImage(img, xPositionScale(d.x_pos), yPositionScale(d.y_pos), size, size);
+        ctx.drawImage(img, xPositionScale(d.x_pos), yPositionScale(d.y_pos), imgWidth, img.height * (imgWidth / img.width));
       }, false);
 
       img.src = imgDir + d.img + ".jpg";
+
 
     })
 
